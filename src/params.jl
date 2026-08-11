@@ -1,7 +1,10 @@
 # params.jl — SimParams and package defaults.
 
 """
-Two-component flank-length mixture (short vs longer unread 5′/3′ contexts).
+Two-component flank-length mixture for unread 5′/3′ contexts.
+
+With probability `p_short`, sample length from `short`; otherwise from `long`.
+Used as the default for `flank_5p` / `flank_3p` in [`train_params`](@ref).
 """
 struct DomainFlankMix
     short::DiscreteUniform
@@ -17,7 +20,19 @@ end
     SimParams
 
 Stochastic knobs for recombination, flanks, and body noise. Parametric over
-distribution types. Construct with [`train_params`](@ref) or override fields.
+distribution types. Construct with [`train_params`](@ref); every keyword of
+`train_params` is a field here.
+
+# Fields
+- `v_trim_5p`, `v_trim_3p` — V end trimming (nt)
+- `d_trim_5p`, `d_trim_3p` — D end trimming (nt)
+- `j_trim_5p` — J 5′ trimming (nt)
+- `n1_length`, `n2_length` — N-addition lengths (nt)
+- `include_d` — Bernoulli (or similar) whether the D segment is included
+- `flank_5p`, `flank_3p` — unread flank lengths (often [`DomainFlankMix`](@ref))
+- `body_error_rate`, `indel_rate` — per-read SHM / indel rates on VDJ body
+- `min_length`, `max_length` — accepted assembled length (nt)
+- `max_retries` — recombination attempts before error
 """
 struct SimParams{VT5,VT3,DT5,DT3,JT5,N1,N2,ID,F5,F3,ER,IR}
     v_trim_5p::VT5
@@ -38,11 +53,43 @@ struct SimParams{VT5,VT3,DT5,DT3,JT5,N1,N2,ID,F5,F3,ER,IR}
 end
 
 """
-    train_params(; kwargs...)
+    train_params(; kwargs...) -> SimParams
 
 Package defaults: empirical trim/N/D-inclusion margins, modest body-noise
 curriculum, and **domain-randomized** flanks (wide short/long mix — not locked
-to a single primer/assay unread length). Override any keyword to fine-tune.
+to a single primer/assay unread length).
+
+Pass any of the keywords below to override the default. Values that are sampled
+per read should be `Distributions.Sampleable` (or [`DomainFlankMix`](@ref) for
+flanks); length bounds are integers.
+
+| Keyword | Default | Role |
+|:--------|:--------|:-----|
+| `v_trim_5p` | `DiscreteUniform(0, 0)` | V 5′ trim (nt) |
+| `v_trim_3p` | `DiscreteUniform(0, 10)` | V 3′ trim (nt) |
+| `d_trim_5p` | `DiscreteUniform(0, 12)` | D 5′ trim (nt) |
+| `d_trim_3p` | `DiscreteUniform(0, 12)` | D 3′ trim (nt) |
+| `j_trim_5p` | `DiscreteUniform(0, 14)` | J 5′ trim (nt) |
+| `n1_length` | `DiscreteUniform(0, 18)` | N1 addition length (nt) |
+| `n2_length` | `DiscreteUniform(0, 18)` | N2 addition length (nt) |
+| `include_d` | `Bernoulli(0.97)` | include D segment |
+| `flank_5p` | `DomainFlankMix(DiscreteUniform(10, 60), DiscreteUniform(60, 140), 0.5)` | 5′ unread flank |
+| `flank_3p` | `DomainFlankMix(DiscreteUniform(20, 80), DiscreteUniform(80, 160), 0.5)` | 3′ unread flank |
+| `body_error_rate` | `Uniform(0.0, 0.06)` | substitution rate on VDJ body |
+| `indel_rate` | `Uniform(0.0, 0.002)` | indel rate on VDJ body |
+| `min_length` | `80` | minimum accepted read length (nt) |
+| `max_length` | `900` | maximum accepted read length (nt) |
+| `max_retries` | `32` | recombine attempts before error |
+
+```julia
+using Distributions
+params = train_params(;
+    v_trim_3p = DiscreteUniform(0, 5),
+    include_d = Bernoulli(1.0),
+    body_error_rate = Uniform(0.0, 0.02),
+)
+gen = ReadGenerator(db; params)
+```
 """
 function train_params(;
                       v_trim_5p = DiscreteUniform(0, 0),

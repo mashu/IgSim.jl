@@ -4,6 +4,7 @@
 [![Coverage](https://codecov.io/gh/mashu/IgSim.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/mashu/IgSim.jl)
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://mashu.github.io/IgSim.jl/stable/)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://mashu.github.io/IgSim.jl/dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Streaming V(D)J read simulator for training: uniform allele sampling, labeled
 spans, holdout splits, and contrastive sister negatives.
@@ -46,7 +47,26 @@ held_gen  = HoldoutVGenerator(full_db, held_v_names) # gold V ∈ held set
 
 ### Custom parameters
 
-Defaults come from `train_params`. Override any knob:
+Defaults come from `train_params`. Override any keyword (full list and defaults
+in the [Parameters](https://mashu.github.io/IgSim.jl/dev/parameters/) docs):
+
+| Keyword | Default | Role |
+|:--------|:--------|:-----|
+| `v_trim_5p` | `DiscreteUniform(0, 0)` | V 5′ trim (nt) |
+| `v_trim_3p` | `DiscreteUniform(0, 10)` | V 3′ trim (nt) |
+| `d_trim_5p` | `DiscreteUniform(0, 12)` | D 5′ trim (nt) |
+| `d_trim_3p` | `DiscreteUniform(0, 12)` | D 3′ trim (nt) |
+| `j_trim_5p` | `DiscreteUniform(0, 14)` | J 5′ trim (nt) |
+| `n1_length` | `DiscreteUniform(0, 18)` | N1 addition length (nt) |
+| `n2_length` | `DiscreteUniform(0, 18)` | N2 addition length (nt) |
+| `include_d` | `Bernoulli(0.97)` | include D segment |
+| `flank_5p` | `DomainFlankMix(...)` | 5′ unread flank |
+| `flank_3p` | `DomainFlankMix(...)` | 3′ unread flank |
+| `body_error_rate` | `Uniform(0.0, 0.06)` | substitution rate on VDJ body |
+| `indel_rate` | `Uniform(0.0, 0.002)` | indel rate on VDJ body |
+| `min_length` | `80` | min accepted length (nt) |
+| `max_length` | `900` | max accepted length (nt) |
+| `max_retries` | `32` | recombine attempts before error |
 
 ```julia
 using Distributions
@@ -59,4 +79,5 @@ gen = ReadGenerator(db; params)
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).
+

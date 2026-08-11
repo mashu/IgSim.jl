@@ -41,17 +41,16 @@ held_gen  = HoldoutVGenerator(full_db, held_v_names) # gold V ∈ held set
 
 ### Custom parameters
 
-Defaults come from `train_params`. Override any knob:
+Defaults come from [`train_params`](@ref). Every keyword is overridable — see
+[Parameters](@ref) for the full table and defaults.
 
 ```julia
 using Distributions
 params = train_params(;
     flank_5p = DomainFlankMix(DiscreteUniform(5, 40), DiscreteUniform(40, 120), 0.6),
     body_error_rate = Uniform(0.0, 0.03),
+    include_d = Bernoulli(1.0),
 )
 gen = ReadGenerator(db; params)
 ```
 
-## API
-
-See the [documentation](https://mashu.github.io/IgSim.jl/stable/) for the full API reference.
