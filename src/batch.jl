@@ -1,5 +1,6 @@
 # batch.jl — Pad collate for downstream training (no Flux/device).
 
+"""Padded batch of [`LabeledRead`](@ref) (sequences, region labels, allele calls)."""
 struct ReadBatch
     sequences::Vector{String}
     labels::Matrix{UInt8}          # (T, B) padded with REG_PAD
@@ -10,6 +11,7 @@ struct ReadBatch
     reads::Vector{LabeledRead}
 end
 
+"""Pad-collate a vector of reads into a [`ReadBatch`](@ref)."""
 function collate_reads(reads::Vector{LabeledRead})
     B = length(reads)
     B == 0 && return ReadBatch(String[], Matrix{UInt8}(undef, 0, 0), Int32[],

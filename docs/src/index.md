@@ -1,10 +1,5 @@
 # IgSim.jl
 
-[![Build Status](https://github.com/mashu/IgSim.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/mashu/IgSim.jl/actions/workflows/CI.yml?query=branch%3Amain)
-[![Coverage](https://codecov.io/gh/mashu/IgSim.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/mashu/IgSim.jl)
-[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://mashu.github.io/IgSim.jl/stable/)
-[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://mashu.github.io/IgSim.jl/dev/)
-
 Streaming V(D)J read simulator for training: uniform allele sampling, labeled
 spans, holdout splits, and contrastive sister negatives.
 
@@ -15,7 +10,7 @@ using Pkg
 Pkg.add(url="https://github.com/mashu/IgSim.jl")
 ```
 
-## Usage
+## Quick start
 
 ```julia
 using IgSim, Random
@@ -39,7 +34,7 @@ examples = take_batch(cs, 64)
 
 ```julia
 train_db, held = holdout_alleles(full_db, held_v_names, String[], String[])
-train_gen = ReadGenerator(train_db)                 # never samples held V
+train_gen = ReadGenerator(train_db)                  # never samples held V
 held_gen  = HoldoutVGenerator(full_db, held_v_names) # gold V ∈ held set
 # evaluation gallery = full_db (or merge_germline(train_db, held))
 ```
@@ -57,6 +52,6 @@ params = train_params(;
 gen = ReadGenerator(db; params)
 ```
 
-## License
+## API
 
-MIT
+See the [documentation](https://mashu.github.io/IgSim.jl/stable/) for the full API reference.

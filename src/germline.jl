@@ -1,5 +1,6 @@
 # germline.jl — Allele records and FASTA-backed germline DB.
 
+"""Named germline allele (`name`, DNA `sequence`)."""
 struct Allele
     name::String
     sequence::String
@@ -14,6 +15,7 @@ function gene_from_allele(name::AbstractString)
     isnothing(i) ? s : s[1:prevind(s, i)]
 end
 
+"""V/D/J allele lists used by recombination and galleries."""
 struct GermlineDB
     v::Vector{Allele}
     d::Vector{Allele}

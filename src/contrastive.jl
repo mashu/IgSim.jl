@@ -1,5 +1,6 @@
 # contrastive.jl — Sister hard-negatives as a stream view (not a loss).
 
+"""One labeled read plus causal V index and nearest same-gene sister indices."""
 struct ContrastiveExample
     read::LabeledRead
     positive_v::Int
