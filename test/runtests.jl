@@ -1,5 +1,6 @@
 using Test
 using Random
+using Distributions
 using IgSim
 
 const FIX = joinpath(@__DIR__, "fixtures")
@@ -40,6 +41,24 @@ end
     r = hg(MersenneTwister(1))
     @test r.v_call in Set(held_names)
     @test train_params().flank_5p isa DomainFlankMix
+    @test train_params().body_error_rate isa GatedRate
+end
+
+@testset "gated SHM + curriculum" begin
+    rng = MersenneTwister(7)
+    @test all(==(0.0), [rand(rng, GatedRate(0.0, Dirac(0.1))) for _ in 1:40])
+    @test all(==(0.07), [rand(rng, GatedRate(1.0, Dirac(0.07))) for _ in 1:20])
+    db = load_germline(; v = joinpath(FIX, "V.fasta"),
+                         d = joinpath(FIX, "D.fasta"),
+                         j = joinpath(FIX, "J.fasta"))
+    easy = ReadGenerator(db; params = easy_params())
+    @test all(r -> r.body_error_rate == 0 && r.n_errors == 0,
+              [easy(rng) for _ in 1:30])
+    mix = mixed_curriculum(db)
+    @test mix isa MixedReadGenerator
+    r = mix(rng)
+    @test !isempty(r.sequence)
+    @test length(r.sequence) == length(r.labels)
 end
 
 @testset "trim/N helpers" begin

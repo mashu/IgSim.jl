@@ -72,3 +72,51 @@ function HoldoutVGenerator(db_full::GermlineDB, held_v_names;
 end
 
 (h::HoldoutVGenerator)(rng::AbstractRNG) = h.gen(rng)
+
+"""
+    MixedReadGenerator(gens, weights)
+
+Per-read mixture over generators (e.g. easy / mid / hard curriculum).
+`weights` are relative (need not sum to 1).
+"""
+struct MixedReadGenerator{G}
+    gens::Vector{G}
+    weights::Vector{Float64}
+    function MixedReadGenerator(gens::Vector{G},
+                                weights::AbstractVector{<:Real}) where {G}
+        length(gens) == length(weights) || throw(ArgumentError("gens/weights length mismatch"))
+        length(gens) >= 1 || throw(ArgumentError("need at least one generator"))
+        w = Float64.(weights)
+        any(<(0), w) && throw(ArgumentError("weights must be non-negative"))
+        sum(w) > 0 || throw(ArgumentError("weights must sum > 0"))
+        new{G}(gens, w)
+    end
+end
+
+"""
+Default train mix: mostly clean, some mild IgG-like SHM, rare hard tail.
+
+Weights `(0.55, 0.35, 0.10)` → expected fraction of reads with any SHM
+≈ `0.55·0 + 0.35·0.45 + 0.10·0.65 ≈ 22%`.
+"""
+function mixed_curriculum(db::GermlineDB; weights = (0.55, 0.35, 0.10))
+    MixedReadGenerator(
+        ReadGenerator[
+            ReadGenerator(db; params = easy_params()),
+            ReadGenerator(db; params = mid_params()),
+            ReadGenerator(db; params = hard_params()),
+        ],
+        collect(Float64, weights),
+    )
+end
+
+function (gen::MixedReadGenerator)(rng::AbstractRNG)
+    total = sum(gen.weights)
+    u = rand(rng) * total
+    c = 0.0
+    @inbounds for i in eachindex(gen.weights)
+        c += gen.weights[i]
+        u <= c && return gen.gens[i](rng)
+    end
+    gen.gens[end](rng)
+end
