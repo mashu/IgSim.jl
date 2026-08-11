@@ -3,7 +3,7 @@ Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 IgSim = "3bec262d-27b6-45c0-b6ae-46edbe0ddb30"
 
 [sources]
-IgSim = {path = "/home/mateusz/IgSim.jl"}
+IgSim = {path = ".."}
 
 [compat]
 Documenter = "1"
