@@ -1,0 +1,74 @@
+# read.jl — LabeledRead + ReadGenerator.
+
+"""One simulated read with causal allele labels and region path."""
+struct LabeledRead
+    sequence::String
+    labels::Vector{UInt8}
+    spans::NamedTuple
+    v_call::String
+    d_call::Union{String,Missing}
+    j_call::String
+    has_d::Bool
+    flank5::Int
+    flank3::Int
+    v_trim_5::Int
+    v_trim_3::Int
+    d_trim_5::Int
+    d_trim_3::Int
+    j_trim_5::Int
+    n_errors::Int
+    body_error_rate::Float64
+end
+
+"""Callable generator: `gen(rng) -> LabeledRead`."""
+struct ReadGenerator{P<:SimParams}
+    db::GermlineDB
+    params::P
+end
+
+ReadGenerator(db::GermlineDB; params::SimParams = train_params()) =
+    ReadGenerator(db, params)
+
+function (gen::ReadGenerator)(rng::AbstractRNG)
+    params = gen.params
+    for _ in 1:params.max_retries
+        parts = recombine(rng, gen.db, params)
+        isnothing(parts) && continue
+        seq0, labels0, f5, f3 = assemble(rng, parts, params)
+        L = length(seq0)
+        (L < params.min_length || L > params.max_length) && continue
+        sub_r = Float64(rand(rng, params.body_error_rate))
+        ind_r = Float64(rand(rng, params.indel_rate))
+        seq, labels, n_err = apply_body_noise(rng, seq0, labels0, sub_r, ind_r)
+        spans = spans_from_labels(labels)
+        return LabeledRead(seq, labels, spans,
+                           parts.v_call, parts.d_call, parts.j_call, parts.has_d,
+                           f5, f3,
+                           parts.v_trim_5, parts.v_trim_3,
+                           parts.d_trim_5, parts.d_trim_3, parts.j_trim_5,
+                           n_err, sub_r)
+    end
+    error("ReadGenerator failed after $(params.max_retries) retries")
+end
+
+"""
+Open-set sim: sample V only from held alleles; D/J from full DB.
+
+`held_v_names` are exact allele strings. Typical protocol: train on
+`holdout_alleles(...).train`, evaluate gallery = full DB, sim reads from
+`HoldoutVGenerator(full_db, held_names)`.
+"""
+struct HoldoutVGenerator{G<:ReadGenerator}
+    gen::G
+    held_v_names::Set{String}
+end
+
+function HoldoutVGenerator(db_full::GermlineDB, held_v_names;
+                           params::SimParams = train_params())
+    held_v = filter_alleles(db_full.v, held_v_names)
+    isempty(held_v) && throw(ArgumentError("no held V alleles matched"))
+    gen = ReadGenerator(GermlineDB(held_v, db_full.d, db_full.j); params)
+    HoldoutVGenerator(gen, Set(String.(a.name for a in held_v)))
+end
+
+(h::HoldoutVGenerator)(rng::AbstractRNG) = h.gen(rng)
