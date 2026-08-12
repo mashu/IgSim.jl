@@ -74,8 +74,21 @@ struct SimParams{VT5,VT3,DT5,DT3,JT5,N1,N2,ID,F5,F3,ER,IR}
     max_retries::Int
 end
 
+"""
+    default_flank_5p() -> DomainFlankMix
+
+Default 5′ unread flank lengths for [`train_params`](@ref): short
+`DiscreteUniform(10, 60)`, long `DiscreteUniform(70, 140)`, `p_short = 0.55`.
+"""
 default_flank_5p() = DomainFlankMix(DiscreteUniform(10, 60),
                                     DiscreteUniform(70, 140), 0.55)
+
+"""
+    default_flank_3p() -> DomainFlankMix
+
+Default 3′ unread flank lengths for [`train_params`](@ref): short
+`DiscreteUniform(40, 110)`, long `DiscreteUniform(80, 160)`, `p_short = 0.55`.
+"""
 default_flank_3p() = DomainFlankMix(DiscreteUniform(40, 110),
                                     DiscreteUniform(80, 160), 0.55)
 

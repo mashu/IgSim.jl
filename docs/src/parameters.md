@@ -8,6 +8,9 @@ All simulation knobs live in [`SimParams`](@ref), built by
 train_params
 SimParams
 DomainFlankMix
+GatedRate
+default_flank_5p
+default_flank_3p
 ```
 
 ## Override checklist
@@ -22,14 +25,16 @@ DomainFlankMix
 | `n1_length` | `DiscreteUniform(0, 18)` | N1 addition length (nt) |
 | `n2_length` | `DiscreteUniform(0, 18)` | N2 addition length (nt) |
 | `include_d` | `Bernoulli(0.97)` | include D segment |
-| `flank_5p` | `DomainFlankMix(DiscreteUniform(10, 60), DiscreteUniform(60, 140), 0.5)` | 5′ unread flank |
-| `flank_3p` | `DomainFlankMix(DiscreteUniform(20, 80), DiscreteUniform(80, 160), 0.5)` | 3′ unread flank |
-| `body_error_rate` | `Uniform(0.0, 0.06)` | substitution rate on VDJ body |
-| `indel_rate` | `Uniform(0.0, 0.002)` | indel rate on VDJ body |
+| `flank_5p` | [`default_flank_5p`](@ref) | 5′ unread flank |
+| `flank_3p` | [`default_flank_3p`](@ref) | 3′ unread flank |
+| `body_error_rate` | `GatedRate(0.45, Uniform(0.005, 0.04))` | SHM gate + rate |
+| `indel_rate` | `GatedRate(0.08, Uniform(0.0, 0.002))` | indel gate + rate |
 | `min_length` | `80` | minimum accepted read length (nt) |
 | `max_length` | `900` | maximum accepted read length (nt) |
 | `max_retries` | `32` | recombine attempts before error |
 
 Flanks use [`DomainFlankMix`](@ref): with probability `p_short` sample from
-`short`, otherwise from `long`. Replace either flank with a single
-`DiscreteUniform` (or any sampleable) if you want a simpler length model.
+`short`, otherwise from `long`. Body noise uses [`GatedRate`](@ref): with
+probability `p` draw a rate from `rate`, otherwise `0`. Replace either flank
+with a single `DiscreteUniform` (or any sampleable) if you want a simpler
+length model.
