@@ -35,6 +35,8 @@ export
     holdout_alleles, merge_germline, filter_alleles, exclude_alleles,
     HoldoutVGenerator, MixedReadGenerator, mixed_curriculum,
     SimParams, DomainFlankMix, GatedRate, train_params,
+    shm, shm_none, shm_igm, shm_igg,
+    IlluminaError, illumina_none, illumina_miseq,
     default_flank_5p, default_flank_3p,
     easy_params, mid_params, hard_params, short_flank_params,
     LabeledRead, ReadGenerator,

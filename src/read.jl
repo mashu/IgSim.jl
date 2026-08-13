@@ -17,6 +17,7 @@ struct LabeledRead
     d_trim_3::Int
     j_trim_5::Int
     n_errors::Int
+    n_illumina::Int
     body_error_rate::Float64
 end
 
@@ -40,13 +41,14 @@ function (gen::ReadGenerator)(rng::AbstractRNG)
         sub_r = Float64(rand(rng, params.body_error_rate))
         ind_r = Float64(rand(rng, params.indel_rate))
         seq, labels, n_err = apply_body_noise(rng, seq0, labels0, sub_r, ind_r)
+        seq, n_ill = apply_illumina_error(rng, seq, labels, params.illumina_error)
         spans = spans_from_labels(labels)
         return LabeledRead(seq, labels, spans,
                            parts.v_call, parts.d_call, parts.j_call, parts.has_d,
                            f5, f3,
                            parts.v_trim_5, parts.v_trim_3,
                            parts.d_trim_5, parts.d_trim_3, parts.j_trim_5,
-                           n_err, sub_r)
+                           n_err, n_ill, sub_r)
     end
     error("ReadGenerator failed after $(params.max_retries) retries")
 end
@@ -94,10 +96,10 @@ struct MixedReadGenerator{G}
 end
 
 """
-Default train mix: mostly clean, some mild IgG-like SHM, rare hard tail.
+Default train mix: naive IgM / IgM-library SHM / IgG tail.
 
 Weights `(0.55, 0.35, 0.10)` → expected fraction of reads with any SHM
-≈ `0.55·0 + 0.35·0.45 + 0.10·0.65 ≈ 22%`.
+≈ `0.55·0 + 0.35·0.40 + 0.10·0.97 ≈ 24%`.
 """
 function mixed_curriculum(db::GermlineDB; weights = (0.55, 0.35, 0.10))
     MixedReadGenerator(

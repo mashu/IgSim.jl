@@ -47,23 +47,26 @@ held_gen  = HoldoutVGenerator(full_db, held_v_names) # gold V ∈ held set
 
 ### Custom parameters
 
-Defaults come from `train_params`. Override any keyword (full list and defaults
-in the [Parameters](https://mashu.github.io/IgSim.jl/dev/parameters/) docs):
+Defaults come from `train_params`. Override any keyword (full list in the
+[Parameters](https://mashu.github.io/IgSim.jl/dev/parameters/) docs). Noise
+presets (`shm_igm()`, `illumina_miseq()`, …) are zero-arg aliases for the
+distributions in the table — not a dispatch layer.
 
-| Keyword | Default | Role |
-|:--------|:--------|:-----|
+| Keyword | Default (actual distribution) | Role |
+|:--------|:------------------------------|:-----|
 | `v_trim_5p` | `DiscreteUniform(0, 0)` | V 5′ trim (nt) |
 | `v_trim_3p` | `DiscreteUniform(0, 10)` | V 3′ trim (nt) |
-| `d_trim_5p` | `DiscreteUniform(0, 12)` | D 5′ trim (nt) |
-| `d_trim_3p` | `DiscreteUniform(0, 12)` | D 3′ trim (nt) |
+| `d_trim_5p` | `Geometric(0.20)` | D 5′ trim (nt; mean = 4) |
+| `d_trim_3p` | `Geometric(0.21)` | D 3′ trim (nt; mean ≈ 3.8) |
 | `j_trim_5p` | `DiscreteUniform(0, 14)` | J 5′ trim (nt) |
 | `n1_length` | `DiscreteUniform(0, 18)` | N1 addition length (nt) |
 | `n2_length` | `DiscreteUniform(0, 18)` | N2 addition length (nt) |
-| `include_d` | `Bernoulli(0.97)` | include D segment |
+| `include_d` | `Bernoulli(0.99)` | rare VJ-only skip |
 | `flank_5p` | `DomainFlankMix(...)` | 5′ unread flank |
 | `flank_3p` | `DomainFlankMix(...)` | 3′ unread flank |
-| `body_error_rate` | `Uniform(0.0, 0.06)` | substitution rate on VDJ body |
-| `indel_rate` | `Uniform(0.0, 0.002)` | indel rate on VDJ body |
+| `body_error_rate` | `GatedRate(0.40, Uniform(0.005, 0.07))` | SHM (`shm_igm`) |
+| `indel_rate` | `GatedRate(0.08, Uniform(0.0, 0.002))` | SHM-like indels |
+| `illumina_error` | `IlluminaError(0.001)` | instrument (`illumina_miseq`) |
 | `min_length` | `80` | min accepted length (nt) |
 | `max_length` | `900` | max accepted length (nt) |
 | `max_retries` | `32` | recombine attempts before error |
@@ -72,10 +75,47 @@ in the [Parameters](https://mashu.github.io/IgSim.jl/dev/parameters/) docs):
 using Distributions
 params = train_params(;
     flank_5p = DomainFlankMix(DiscreteUniform(5, 40), DiscreteUniform(40, 120), 0.6),
-    body_error_rate = Uniform(0.0, 0.03),
+    body_error_rate = GatedRate(0.97, Uniform(0.015, 0.13)),  # IgG; alias shm_igg()
+    illumina_error = IlluminaError(0.001),  # merged PE Q30; alias illumina_miseq()
 )
 gen = ReadGenerator(db; params)
 ```
+
+### Error model (SHM vs Illumina)
+
+Both layers touch **VDJ body bases only** (V, N1, D, N2, J). Flanks are already
+random DNA, so extra substitutions there would not change the training signal.
+Order: recombination → SHM (+ rare indels) → Illumina substitutions.
+
+**SHM** is zero-inflated, because a real IgM library is mostly germline with a
+mutated memory tail. `GatedRate(p, rate)` does:
+
+1. With probability `p`, draw a per-base substitution rate from `rate`.
+2. Otherwise the rate is `0` (unmutated read).
+3. Each body base then flips independently at that rate.
+
+| Alias | Implementation | Meaning |
+|:------|:---------------|:--------|
+| `shm_none()` | `GatedRate(0.0, Dirac(0.0))` | naive, no SHM |
+| `shm_igm()` | `GatedRate(0.40, Uniform(0.005, 0.07))` | ~60% germline, 40% at 0.5–7% |
+| `shm_igg()` | `GatedRate(0.97, Uniform(0.015, 0.13))` | ~97% mutated at 1.5–13% |
+| `shm(p, lo, hi)` | `GatedRate(p, Uniform(lo, hi))` | custom |
+
+This is a **training prior**, not a fit to one AIRR file. The two-level
+structure (naive peak + mutated clones) is right; Uniform over mutation depth
+is a flat prior so the model sees a range of loads. A `LogNormal` would put
+more mass on moderate rates with a high-SHM tail — pass
+`GatedRate(p, LogNormal(μ, σ))` if you want that. We do **not** model AID
+hotspots (RGYW) or CDR vs framework targeting; i.i.d. substitutions are a
+harder retrieval task (mutations everywhere).
+
+**Illumina** is always-on and runs after SHM. Default `IlluminaError(0.001)` is
+uniform ~Q30 (`0.1%`) on the merged contig — the right cartoon for **paired-end
+MiSeq + overlap merge**. In the overlap, assemblers keep the higher-Q base, so
+a single-mate error is usually dropped rather than randomly kept; the
+single-end 3′ decay is cancelled. Substitutions only (Illumina indels ~10⁻⁶).
+For unmerged single-end, use a ramp e.g. `IlluminaError(0.001, 0.004)`.
+Disable with `IlluminaError(0.0)` / `illumina_none()`.
 
 ## License
 

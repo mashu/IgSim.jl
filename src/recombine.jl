@@ -40,19 +40,14 @@ function recombine(rng::AbstractRNG, db::GermlineDB, params::SimParams)
         d_trim_5 = Int(rand(rng, params.d_trim_5p))
         d_trim_3 = Int(rand(rng, params.d_trim_3p))
         d_body = trim_5p_ascii(trim_3p_ascii(d_all.sequence, d_trim_3), d_trim_5)
-        if length(d_body) < 3
+        # Keep the sampled D label whenever any nucleotide remains, including
+        # 1–2 nt remnants. Call no-D only when trimming ate the whole D.
+        if isempty(d_body)
             has_d = false
-            d_body = ""
-            d_trim_5 = 0
-            d_trim_3 = 0
         else
             d_call = d_all.name
             n2 = sample_n(rng, Int(rand(rng, params.n2_length)))
         end
-    end
-    if !has_d
-        # V–J junction still gets an N segment (use n1 slot later; n2 empty)
-        n2 = ""
     end
 
     v_all = sample_allele(rng, db.v)
@@ -63,11 +58,6 @@ function recombine(rng::AbstractRNG, db::GermlineDB, params::SimParams)
     isempty(j_body) && return nothing
 
     n1 = sample_n(rng, Int(rand(rng, params.n1_length)))
-    if !has_d
-        # single N between V and J
-        n1 = sample_n(rng, Int(rand(rng, params.n1_length)))
-        n2 = ""
-    end
 
     RecomboParts(v_body, n1, d_body, n2, j_body,
                  v_all.name, d_call, j_all.name, has_d,
