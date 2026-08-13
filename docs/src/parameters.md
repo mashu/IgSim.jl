@@ -67,12 +67,13 @@ Illumina. Presets are zero-arg aliases — the implementation is the
 |:------|:---------------|:------------|
 | [`shm_none`](@ref) | `GatedRate(0.0, Dirac(0.0))` | naive / unmutated IgM |
 | [`shm_igm`](@ref) | `GatedRate(0.40, Uniform(0.005, 0.07))` | IgM-sorted library (default) |
-| [`shm_igg`](@ref) | `GatedRate(0.97, Uniform(0.015, 0.13))` | switched memory IgG |
+| [`shm_igg`](@ref) | `GatedRate(0.97, LogNormal(-2.65, 0.50))` | switched memory IgG (right tail) |
 | [`shm`](@ref) `(p, lo, hi)` | `GatedRate(p, Uniform(lo, hi))` | custom mix |
 
 This is a training prior (naive peak + mutated clones), not a fit to one
-repertoire. Uniform over mutation depth is a flat prior; for a heavy tail use
-`GatedRate(p, LogNormal(μ, σ))`. No AID hotspot / CDR targeting.
+repertoire. IgM is a flat Uniform over mutation depth; IgG is log-normal so
+the high-SHM tail is not clipped at 13%. Override with any sampleable via
+`GatedRate(p, ...)`. No AID hotspot / CDR targeting.
 
 **Illumina** ([`IlluminaError`](@ref)) is always-on and applied after SHM.
 Default `IlluminaError(0.001)` is uniform ~Q30 on a **merged paired-end**

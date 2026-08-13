@@ -75,7 +75,7 @@ distributions in the table — not a dispatch layer.
 using Distributions
 params = train_params(;
     flank_5p = DomainFlankMix(DiscreteUniform(5, 40), DiscreteUniform(40, 120), 0.6),
-    body_error_rate = GatedRate(0.97, Uniform(0.015, 0.13)),  # IgG; alias shm_igg()
+    body_error_rate = shm_igg(),
     illumina_error = IlluminaError(0.001),  # merged PE Q30; alias illumina_miseq()
 )
 gen = ReadGenerator(db; params)
@@ -98,16 +98,13 @@ mutated memory tail. `GatedRate(p, rate)` does:
 |:------|:---------------|:--------|
 | `shm_none()` | `GatedRate(0.0, Dirac(0.0))` | naive, no SHM |
 | `shm_igm()` | `GatedRate(0.40, Uniform(0.005, 0.07))` | ~60% germline, 40% at 0.5–7% |
-| `shm_igg()` | `GatedRate(0.97, Uniform(0.015, 0.13))` | ~97% mutated at 1.5–13% |
+| `shm_igg()` | `GatedRate(0.97, LogNormal(-2.65, 0.50))` | ~97% mutated, median ≈ 7%, right tail |
 | `shm(p, lo, hi)` | `GatedRate(p, Uniform(lo, hi))` | custom |
 
-This is a **training prior**, not a fit to one AIRR file. The two-level
-structure (naive peak + mutated clones) is right; Uniform over mutation depth
-is a flat prior so the model sees a range of loads. A `LogNormal` would put
-more mass on moderate rates with a high-SHM tail — pass
-`GatedRate(p, LogNormal(μ, σ))` if you want that. We do **not** model AID
-hotspots (RGYW) or CDR vs framework targeting; i.i.d. substitutions are a
-harder retrieval task (mutations everywhere).
+This is a **training prior**, not a fit to one AIRR file. IgM uses a flat
+Uniform over mutation depth; IgG uses `LogNormal` so high-SHM clones are not
+clipped. We do **not** model AID hotspots (RGYW) or CDR vs framework targeting;
+i.i.d. substitutions are a harder retrieval task (mutations everywhere).
 
 **Illumina** is always-on and runs after SHM. Default `IlluminaError(0.001)` is
 uniform ~Q30 (`0.1%`) on the merged contig — the right cartoon for **paired-end

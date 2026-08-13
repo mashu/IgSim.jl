@@ -71,12 +71,13 @@ is left to the Illumina layer.
 shm_igm() = GatedRate(0.40, Uniform(0.005, 0.07))
 
 """
-    shm_igg() = GatedRate(0.97, Uniform(0.015, 0.13))
+    shm_igg() = GatedRate(0.97, LogNormal(-2.65, 0.50))
 
-Switched / memory IgG: ~97% mutated, per-base rate `Uniform(1.5%, 13%)` when on
-(library-wide mean ≈ 7%).
+Switched / memory IgG: ~97% mutated. When on, per-base rate is log-normal
+(median ≈ 7.1%, mean ≈ 8.0%, p95 ≈ 16%, p99 ≈ 23%) so high-SHM clones are
+not clipped at 13%. Library-wide mean ≈ 7.8%.
 """
-shm_igg() = GatedRate(0.97, Uniform(0.015, 0.13))
+shm_igg() = GatedRate(0.97, LogNormal(-2.65, 0.50))
 
 """
     IlluminaError(p5, p3 = p5)
@@ -197,7 +198,7 @@ domain-randomized flanks. Use [`shm_igg`](@ref) for switched memory, or
 | `max_retries` | `32` | recombine attempts before error |
 
 ```julia
-params = train_params(; body_error_rate = GatedRate(0.97, Uniform(0.015, 0.13)))
+params = train_params(; body_error_rate = shm_igg())
 gen = ReadGenerator(db; params)
 ```
 """
@@ -250,7 +251,7 @@ mid_params() = train_params()
 """
 Hard: heavier trim + IgG-level gated SHM ([`shm_igg`](@ref)).
 
-~97% of hard reads mutated; rate ~1.5–13% when on.
+~97% of hard reads mutated; log-normal SHM rate when on (median ≈ 7%, right tail).
 """
 hard_params() = train_params(
     v_trim_5p = DiscreteUniform(0, 1),

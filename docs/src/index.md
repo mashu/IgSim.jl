@@ -48,7 +48,7 @@ Defaults come from [`train_params`](@ref). Every keyword is overridable — see
 using Distributions
 params = train_params(;
     flank_5p = DomainFlankMix(DiscreteUniform(5, 40), DiscreteUniform(40, 120), 0.6),
-    body_error_rate = GatedRate(0.97, Uniform(0.015, 0.13)),  # IgG; alias shm_igg()
+    body_error_rate = shm_igg(),
     illumina_error = IlluminaError(0.001),
     include_d = Bernoulli(1.0),
 )

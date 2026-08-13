@@ -51,6 +51,7 @@ end
     @test shm_none().p == 0
     @test shm_igm().p == 0.40
     @test shm_igg().p == 0.97
+    @test shm_igg().rate isa LogNormal
     @test train_params().body_error_rate.p == shm_igm().p
     @test hard_params().body_error_rate.p == shm_igg().p
     @test all(==(0.04), [rand(rng, shm(1.0, 0.04, 0.04)) for _ in 1:20])
