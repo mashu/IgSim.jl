@@ -108,6 +108,14 @@ load_germline(; v::AbstractString, j::AbstractString,
 sample_allele(rng::AbstractRNG, alleles::Vector{Allele}) =
     alleles[rand(rng, 1:length(alleles))]
 
+"""Uniform allele other than index `skip` (needs ≥ 2 alleles)."""
+function sample_other_allele(rng::AbstractRNG, alleles::Vector{Allele}, skip::Int)
+    n = length(alleles)
+    i = rand(rng, 1:(n - 1))
+    i >= skip && (i += 1)
+    i, alleles[i]
+end
+
 function allele_gene_ids(alleles::Vector{Allele})
     genes = Dict{String,Int}()
     ids = Vector{Int}(undef, length(alleles))

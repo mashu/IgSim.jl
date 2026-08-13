@@ -125,15 +125,16 @@ helpers [`easy_params`](@ref) / [`mid_params`](@ref) / [`hard_params`](@ref).
 - `v_trim_5p`, `v_trim_3p` — V end trimming (nt)
 - `d_trim_5p`, `d_trim_3p` — D end trimming (nt)
 - `j_trim_5p` — J 5′ trimming (nt)
-- `n1_length`, `n2_length` — N-addition lengths (nt)
+- `n1_length`, `n2_length` — N-addition lengths (nt); `n2_length` also draws the inter-D N on tandem DD
 - `include_d` — Bernoulli (or similar) whether the D segment is included
+- `include_dd` — Bernoulli for a second D joining an existing DJ (tandem DD)
 - `flank_5p`, `flank_3p` — unread flank lengths (often [`DomainFlankMix`](@ref))
 - `body_error_rate`, `indel_rate` — per-read SHM / indel rates (often [`GatedRate`](@ref))
 - `illumina_error` — always-on instrument substitutions ([`IlluminaError`](@ref))
 - `min_length`, `max_length` — accepted assembled length (nt)
 - `max_retries` — recombination attempts before error
 """
-struct SimParams{VT5,VT3,DT5,DT3,JT5,N1,N2,ID,F5,F3,ER,IR}
+struct SimParams{VT5,VT3,DT5,DT3,JT5,N1,N2,ID,IDD,F5,F3,ER,IR}
     v_trim_5p::VT5
     v_trim_3p::VT3
     d_trim_5p::DT5
@@ -142,6 +143,7 @@ struct SimParams{VT5,VT3,DT5,DT3,JT5,N1,N2,ID,F5,F3,ER,IR}
     n1_length::N1
     n2_length::N2
     include_d::ID
+    include_dd::IDD
     flank_5p::F5
     flank_3p::F3
     body_error_rate::ER
@@ -186,8 +188,9 @@ domain-randomized flanks. Use [`shm_igg`](@ref) for switched memory, or
 | `d_trim_3p` | `Geometric(0.21)` | D 3′ trim (nt; mean ≈ 3.8, unbounded tail) |
 | `j_trim_5p` | `DiscreteUniform(0, 14)` | J 5′ trim (nt) |
 | `n1_length` | `DiscreteUniform(0, 18)` | N1 addition length (nt) |
-| `n2_length` | `DiscreteUniform(0, 18)` | N2 addition length (nt) |
+| `n2_length` | `DiscreteUniform(0, 18)` | N2 addition length (nt); also inter-D N on DD |
 | `include_d` | `Bernoulli(0.99)` | rare VJ-only skip |
+| `include_dd` | `Bernoulli(0.001)` | tandem DD (DJ → DDJ → VDDJ) |
 | `flank_5p` | [`default_flank_5p`](@ref) | 5′ unread flank |
 | `flank_3p` | [`default_flank_3p`](@ref) | 3′ unread flank |
 | `body_error_rate` | `GatedRate(0.40, Uniform(0.005, 0.07))` | SHM ([`shm_igm`](@ref)) |
@@ -211,6 +214,7 @@ function train_params(;
                       n1_length = DiscreteUniform(0, 18),
                       n2_length = DiscreteUniform(0, 18),
                       include_d = Bernoulli(0.99),
+                      include_dd = Bernoulli(0.001),
                       flank_5p = default_flank_5p(),
                       flank_3p = default_flank_3p(),
                       body_error_rate = shm_igm(),
@@ -221,7 +225,7 @@ function train_params(;
                       max_retries::Integer = 32)
     SimParams(
         v_trim_5p, v_trim_3p, d_trim_5p, d_trim_3p, j_trim_5p,
-        n1_length, n2_length, include_d, flank_5p, flank_3p,
+        n1_length, n2_length, include_d, include_dd, flank_5p, flank_3p,
         body_error_rate, indel_rate, illumina_error,
         Int(min_length), Int(max_length), Int(max_retries),
     )

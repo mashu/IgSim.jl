@@ -10,9 +10,9 @@ function append_seg!(seq::Vector{Char}, labels::Vector{UInt8},
 end
 
 """
-Build full read: flank5 + V + N1 + [D] + N2 + J + flank3.
+Build full read: flank5 + V + N1 + [D + [N3 + D2] + N2] + J + flank3.
 
-Returns `(sequence, labels, flank5_len, flank3_len)`.
+Tandem DD is V–N1–D–N3–D2–N2–J. Returns `(sequence, labels, flank5_len, flank3_len)`.
 """
 function assemble(rng::AbstractRNG, parts::RecomboParts, params::SimParams)
     f5 = Int(rand(rng, params.flank_5p))
@@ -26,6 +26,10 @@ function assemble(rng::AbstractRNG, parts::RecomboParts, params::SimParams)
     append_seg!(seq, labels, parts.n1, REG_N1)
     if parts.has_d
         append_seg!(seq, labels, parts.d_body, REG_D)
+        if parts.multi_d
+            append_seg!(seq, labels, parts.n3, REG_N3)
+            append_seg!(seq, labels, parts.d2_body, REG_D)
+        end
         append_seg!(seq, labels, parts.n2, REG_N2)
     end
     append_seg!(seq, labels, parts.j_body, REG_J)

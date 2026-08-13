@@ -30,8 +30,9 @@ default_flank_3p
 | `d_trim_3p` | `Geometric(0.21)` | D 3′ trim (nt; mean ≈ 3.8, unbounded tail) |
 | `j_trim_5p` | `DiscreteUniform(0, 14)` | J 5′ trim (nt) |
 | `n1_length` | `DiscreteUniform(0, 18)` | N1 addition length (nt) |
-| `n2_length` | `DiscreteUniform(0, 18)` | N2 addition length (nt) |
+| `n2_length` | `DiscreteUniform(0, 18)` | N2 addition length (nt); also inter-D N on DD |
 | `include_d` | `Bernoulli(0.99)` | rare VJ-only skip |
+| `include_dd` | `Bernoulli(0.001)` | tandem DD (DJ → DDJ → VDDJ) |
 | `flank_5p` | [`default_flank_5p`](@ref) | 5′ unread flank |
 | `flank_3p` | [`default_flank_3p`](@ref) | 3′ unread flank |
 | `body_error_rate` | `GatedRate(0.40, Uniform(0.005, 0.07))` | SHM ([`shm_igm`](@ref)) |
@@ -53,6 +54,15 @@ special case. This is causal gold, not an IgBLAST minimum consecutive-match
 cutoff. The mean is set so IgBLAST / SwiftIG empty-`d_call` rates on sim
 land near the same tools on real reads; gold emptiness stays higher than
 either caller reports.
+
+Tandem DD is a rare extra recombination, not a second annotation of one D.
+Order: DJ (trim D 3′ / J 5′, N2) → with probability `include_dd` a second D
+joins that DJ (both ends trimmed, N3 from `n2_length`) → V joins the DDJ.
+Observed rate is a bit under `include_dd` because a fully eaten 5′ D falls
+back to single-D. Default `Bernoulli(0.001)` is ~50 / 50 000 attempts. Gold
+`d_call` is `D5,D3` (comma, no spaces; 5′ then 3′), the same string form
+assignment tools use for multiple calls. `multi_d` is a `Bool` (`true` /
+`false`) set only when both remnants survive.
 
 ## Error model
 

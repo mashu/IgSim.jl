@@ -1,6 +1,12 @@
 # read.jl — LabeledRead + ReadGenerator.
 
-"""One simulated read with causal allele labels and region path."""
+"""One simulated read with causal allele labels and region path.
+
+`d_call` is a single allele or a comma-separated 5′ then 3′ pair (no spaces),
+the same string form assignment tools use for multiple D calls. `multi_d` is
+`true` only for tandem DD (both remnants non-empty), so a comma in `d_call`
+is gold double-D rather than annotator ambiguity.
+"""
 struct LabeledRead
     sequence::String
     labels::Vector{UInt8}
@@ -9,12 +15,15 @@ struct LabeledRead
     d_call::Union{String,Missing}
     j_call::String
     has_d::Bool
+    multi_d::Bool
     flank5::Int
     flank3::Int
     v_trim_5::Int
     v_trim_3::Int
     d_trim_5::Int
     d_trim_3::Int
+    d2_trim_5::Int
+    d2_trim_3::Int
     j_trim_5::Int
     n_errors::Int
     n_illumina::Int
@@ -44,10 +53,12 @@ function (gen::ReadGenerator)(rng::AbstractRNG)
         seq, n_ill = apply_illumina_error(rng, seq, labels, params.illumina_error)
         spans = spans_from_labels(labels)
         return LabeledRead(seq, labels, spans,
-                           parts.v_call, parts.d_call, parts.j_call, parts.has_d,
+                           parts.v_call, parts.d_call, parts.j_call,
+                           parts.has_d, parts.multi_d,
                            f5, f3,
                            parts.v_trim_5, parts.v_trim_3,
-                           parts.d_trim_5, parts.d_trim_3, parts.j_trim_5,
+                           parts.d_trim_5, parts.d_trim_3,
+                           parts.d2_trim_5, parts.d2_trim_3, parts.j_trim_5,
                            n_err, n_ill, sub_r)
     end
     error("ReadGenerator failed after $(params.max_retries) retries")

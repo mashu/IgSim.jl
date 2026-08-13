@@ -8,6 +8,7 @@ struct ReadBatch
     v_call::Vector{String}
     d_call::Vector{Union{String,Missing}}
     j_call::Vector{String}
+    multi_d::Vector{Bool}
     reads::Vector{LabeledRead}
 end
 
@@ -15,7 +16,8 @@ end
 function collate_reads(reads::Vector{LabeledRead})
     B = length(reads)
     B == 0 && return ReadBatch(String[], Matrix{UInt8}(undef, 0, 0), Int32[],
-                               String[], Union{String,Missing}[], String[], LabeledRead[])
+                               String[], Union{String,Missing}[], String[],
+                               Bool[], LabeledRead[])
     lens = Int32[length(r.sequence) for r in reads]
     T = Int(maximum(lens))
     labels = fill(UInt8(REG_PAD), T, B)
@@ -27,5 +29,6 @@ function collate_reads(reads::Vector{LabeledRead})
               [r.v_call for r in reads],
               Union{String,Missing}[r.d_call for r in reads],
               [r.j_call for r in reads],
+              [r.multi_d for r in reads],
               reads)
 end

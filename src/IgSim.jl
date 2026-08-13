@@ -27,7 +27,7 @@ include("batch.jl")
 
 export
     NucleotideAlphabet, tokenize, detokenize, DNA_BASES,
-    RegionLabel, REG_PAD, REG_V, REG_N1, REG_D, REG_N2, REG_J,
+    RegionLabel, REG_PAD, REG_V, REG_N1, REG_D, REG_N2, REG_J, REG_N3,
     Span, EMPTY_SPAN, spans_from_labels,
     Allele, GermlineDB, load_germline, read_fasta_alleles,
     n_v, n_d, n_j, sequence_string,

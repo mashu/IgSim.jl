@@ -60,8 +60,9 @@ distributions in the table — not a dispatch layer.
 | `d_trim_3p` | `Geometric(0.21)` | D 3′ trim (nt; mean ≈ 3.8) |
 | `j_trim_5p` | `DiscreteUniform(0, 14)` | J 5′ trim (nt) |
 | `n1_length` | `DiscreteUniform(0, 18)` | N1 addition length (nt) |
-| `n2_length` | `DiscreteUniform(0, 18)` | N2 addition length (nt) |
+| `n2_length` | `DiscreteUniform(0, 18)` | N2 addition length (nt); also inter-D N on DD |
 | `include_d` | `Bernoulli(0.99)` | rare VJ-only skip |
+| `include_dd` | `Bernoulli(0.001)` | tandem DD (DJ → DDJ → VDDJ) |
 | `flank_5p` | `DomainFlankMix(...)` | 5′ unread flank |
 | `flank_3p` | `DomainFlankMix(...)` | 3′ unread flank |
 | `body_error_rate` | `GatedRate(0.40, Uniform(0.005, 0.07))` | SHM (`shm_igm`) |
@@ -70,6 +71,11 @@ distributions in the table — not a dispatch layer.
 | `min_length` | `80` | min accepted length (nt) |
 | `max_length` | `900` | max accepted length (nt) |
 | `max_retries` | `32` | recombine attempts before error |
+
+Tandem DD is rare extra recombination: DJ → DDJ → VDDJ (`include_dd`,
+default 0.1%). Each D is trimmed on both ends; N between them is drawn from
+`n2_length`. Gold `d_call` is `D5,D3` (comma, no spaces). `multi_d` is a
+`Bool` (`true`/`false`) so it parses as boolean in TSV.
 
 ```julia
 using Distributions
@@ -83,7 +89,7 @@ gen = ReadGenerator(db; params)
 
 ### Error model (SHM vs Illumina)
 
-Both layers touch **VDJ body bases only** (V, N1, D, N2, J). Flanks are already
+Both layers touch **VDJ body bases only** (V, N1, D, N3, D2, N2, J). Flanks are already
 random DNA, so extra substitutions there would not change the training signal.
 Order: recombination → SHM (+ rare indels) → Illumina substitutions.
 
